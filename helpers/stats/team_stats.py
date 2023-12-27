@@ -24,8 +24,8 @@ def getTeamPlayersByPosition(team_id,position):
     position_list = df_roster[condition]
     return position_list
 
-def getTeamGamelog(id):
-    logs = TeamGameLog(team_id = id)
+def getTeamGamelog(id, year):
+    logs = TeamGameLog(team_id = id, season = year)
     df_logs = logs.get_data_frames()
     return df_logs[0]
 
@@ -64,6 +64,20 @@ def cleanTeamGameLog(gamelog):
     ordered_log['DATE'] = pd.to_datetime(ordered_log['GAME_DATE'], format='%b %d, %Y')
 
     cleaned_log = ordered_log[['Team_ID','Game_ID','DATE','GAME_DATE','TEAM','OPPONENT','HOME','WL','W','L','W_PCT','MIN','FGM','FGA',
+                               'FG_PCT','FG3M','FG3A','FG3_PCT','FTM','FTA','FT_PCT','OREB','DREB','REB','AST','STL','BLK',
+                               'TOV','PF','PTS']]
+    return cleaned_log
+
+def cleanGamelogForUpdate(gamelog):
+    length = len(gamelog)
+    # ordered_log = gamelog[::-1]
+    
+    gamelog['TEAM'] = gamelog['MATCHUP'].str[:3]
+    gamelog['OPPONENT'] = gamelog['MATCHUP'].str[-3:]
+    gamelog['HOME'] = gamelog['MATCHUP'].str[4] != '@'
+    gamelog['DATE'] = pd.to_datetime(gamelog['GAME_DATE'], format='%b %d, %Y')
+
+    cleaned_log = gamelog[['Team_ID','Game_ID','DATE','GAME_DATE','TEAM','OPPONENT','HOME','WL','W','L','W_PCT','MIN','FGM','FGA',
                                'FG_PCT','FG3M','FG3A','FG3_PCT','FTM','FTA','FT_PCT','OREB','DREB','REB','AST','STL','BLK',
                                'TOV','PF','PTS']]
     return cleaned_log

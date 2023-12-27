@@ -54,13 +54,26 @@ def getLeagueStats():
     # clean df
     # save df to csv
     
-def getAllGameLogs():
+def getAllGameLogs(year):
     df = createDataframe()
     ids = getTeamIdArray()
     for id in ids:
-        logs = getTeamGamelog(id)
+        logs = getTeamGamelog(id, year)
         cleaned = cleanTeamGameLog(logs)
         df = pd.concat([df, cleaned], ignore_index=True)
+    df.dropna(subset=['WL'], inplace=True)
+    df.insert(0,'INDEX',range(0, len(df)))
+    indexed_gamelogs  = df.reset_index(drop = True)
+    return indexed_gamelogs
+
+def getMultipleSeasonGamelogs(years):
+    df = createDataframe()
+    ids = getTeamIdArray()
+    for year in years:
+        for id in ids:
+            logs = getTeamGamelog(id, year)
+            cleaned = cleanTeamGameLog(logs)
+            df = pd.concat([df, cleaned], ignore_index=True)
     df.dropna(subset=['WL'], inplace=True)
     df.insert(0,'INDEX',range(0, len(df)))
     indexed_gamelogs  = df.reset_index(drop = True)
@@ -94,8 +107,116 @@ def addAdvancedStats(stats):
 
     return stats
 
+def addAdvancedSave(stats):
+   
+    new_columns = ['E_OFF_RATING','OFF_RATING','E_DEF_RATING','DEF_RATING','E_NET_RATING',
+                   'NET_RATING','AST_PCT','AST_TOV','AST_RATIO','OREB_PCT','DREB_PCT',
+                   'REB_PCT','E_TM_TOV_PCT','TM_TOV_PCT','EFG_PCT','TS_PCT','USG_PCT',
+                   'E_USG_PCT','E_PACE','PACE','PACE_PER40','POSS','PIE']
+    
+    adv_data_path = './data/21-23_adv.csv'  # update
+    
+    # for item in new_columns:        # delete if we already have some rows filled
+    #     stats[item] = None
+
+    stats['Game_ID'] = stats['Game_ID'].apply(str)
+    
+    # check dataframe for first row that has null value at e_off_rating
+        # start for loop from that row's index
+
+    for ind in range(5771,len(stats)):         # if we fail replace number with index
+        id = stats['Game_ID'][ind]
+        advanced = getTeamAdvancedBoxScore(id, stats['TEAM'][ind])
+        print(advanced)
+
+
+        for item in new_columns:
+            stats[item][ind] = advanced.iloc[0][item]
+       
+        if ind % 10 == 0:
+            stats.to_csv(adv_data_path, index=False)
+    stats.to_csv(adv_data_path, index=False)
+    
+    return stats
+
+def updateData(stats):
+
+    ids = getTeamIdArray()
+    # stats['Game_ID'] = stats['Game_ID'].apply(str)
+    id_count = stats['Game_ID'].value_counts()
+    id_offset = 0
+
+    for id in ids:
+        logs = getTeamGamelog(id, '2023')   # only need to update current year
+        cleaned = cleanGamelogForUpdate(logs)
+
+        for x in range(len(cleaned)):
+            # if item game id is in stats less than 2 times 
+            id = cleaned['Game_ID'][x]
+            row = cleaned.iloc[x]
+
+
+            if id in id_count.index:
+                count = id_count.loc[id]
+                if count < 2:
+                    # row.insert(0,'INDEX',len(stats) + id_offset)
+                    row['INDEX'] = len(stats) + id_offset
+
+                    # stats = pd.concat([stats, row], ignore_index=True)
+                    stats.loc[len(stats)] = row
+                    id_offset += 1
+
+                    print(row)
+            else:
+                # row.insert(0,'INDEX',len(stats) + id_offset)
+                row['INDEX'] = len(stats) + id_offset
+
+                # stats = pd.concat([stats, row], ignore_index=True)
+                stats.loc[len(stats)] = row
+
+                id_offset += 1
+                
+                print(row)
+        
+    stats.dropna(subset=['WL'], inplace=True)
+    indexed_gamelogs  = stats.reset_index(drop = True)
+    indexed_gamelogs['DATE'] = pd.to_datetime(indexed_gamelogs['DATE'])
+    indexed_gamelogs['DATE'] = indexed_gamelogs['DATE'].dt.strftime('%Y-%m-%d')
+    return indexed_gamelogs
+
+
+def addAdvancedToEmptyRows(df):
+
+    new_columns = ['E_OFF_RATING','OFF_RATING','E_DEF_RATING','DEF_RATING','E_NET_RATING',
+                   'NET_RATING','AST_PCT','AST_TOV','AST_RATIO','OREB_PCT','DREB_PCT',
+                   'REB_PCT','E_TM_TOV_PCT','TM_TOV_PCT','EFG_PCT','TS_PCT','USG_PCT',
+                   'E_USG_PCT','E_PACE','PACE','PACE_PER40','POSS','PIE']
+    
+    adv_data_path = './data/21-23_adv_test.csv'  # update
+
+    for ind in range(0,len(df)):         # if we fail replace number with index
+        id = df['Game_ID'][ind]
+        is_nan = pd.isna(df.at[ind, 'E_OFF_RATING'])
+
+
+        if is_nan:
+            advanced = getTeamAdvancedBoxScore(id, df['TEAM'][ind])
+            print(advanced)
+
+            for item in new_columns:
+                df[item][ind] = advanced.iloc[0][item]
+        
+            if ind % 10 == 0:
+                df.to_csv(adv_data_path, index=False)
+    df.to_csv(adv_data_path, index=False)
+
+    return df
+           
+        
+
 def loadnewData():
-    logs = getAllGameLogs()
+    year = '2023'
+    logs = getAllGameLogs(year)
     logs['Game_Num'] = logs['W'] + logs['L']
     # save logs to csv
     # filepath = './data/game_data.csv'

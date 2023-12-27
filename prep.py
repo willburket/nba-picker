@@ -4,11 +4,14 @@ import pandas as pd
 # run python3 prep.py after running build.py 
 
 # file paths
-stats_file = './data/adv_data_incl.csv'
+stats_file = './data/21-23_adv_test.csv' # update 
 rolling_file = './data/roll_data_incl.csv'
 cleaned_file = './data/cleaned_data.csv'
 
+
+
 # 3 clean data
+
 cleanForML(stats_file)  # saves to cleaned_data.csv
 
 # 4 add rolling data 

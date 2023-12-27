@@ -3,22 +3,35 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.linear_model import RidgeClassifier
 from sklearn.preprocessing import MinMaxScaler
+import numpy as np
 
 from sklearn.metrics import accuracy_score
+pd.options.mode.chained_assignment = None  # default='warn'
+
 
 removed_columns = ['INDEX','Team_ID', 'Game_ID', 'GAME_DATE', 'TEAM', 'OPPONENT',
-                       'WL', 'W', 'L', 'target', 'MIN', 'Game_Num', 'HOME', 'DATE']   
+                       'WL', 'W', 'L', 'target', 'MIN', 'Game_Num', 'HOME', 'DATE', 
+                       'season']   
 
 def add_target(team):
     team["target"] = team["WL"].shift(-1)      # can update to points or something
     return team
 
 def cleanForML(file):
-    # df = pd.read_csv('./data/game_data.csv')        # filepath
-
     df = pd.read_csv(file)
+    # add season column 
+    df['DATE'] = pd.to_datetime(df['DATE'], format='%Y-%m-%d')
+    conditions = [
+        (df['DATE'] < pd.Timestamp('2022-08-1')),
+        (df['DATE'] < pd.Timestamp('2023-08-1')),
+        (df['DATE'] < pd.Timestamp('2024-08-1'))
+    ]
+    values = ['2021', '2022', '2023']
+
+    # Add the 'Season' column based on the conditions
+    df['season'] = pd.Series(np.select(conditions, values, default=''), dtype='str')
+
     df = df.groupby("TEAM", group_keys=False).apply(add_target)
-    # df["target"] = df["target"].astype(int, errors="ignore")
     target_map = {'W': '1', 'L': '0', '2': '2'}
     df["target"] = df["target"].map(target_map)
     df["target"][pd.isnull(df["target"])] = 2
@@ -54,23 +67,54 @@ def getPredictors(file):
     predictors = list(selected_columns[sfs.get_support()])
     return predictors
 
-def backTest(data, model, predictors, start=2, step=1):
-    all_predictons = []
-    games = sorted(data["Game_Num"].unique())
+# def backTest(data, model, predictors, start=2, step=1):
+#     all_predictons = []
+#     games = sorted(data["Game_Num"].unique())
 
-    for i in range(start, 25, step):        # 25 is the number of games we're looking at 
-        game = games[i]
-        train = data[data["Game_Num"] < game]
-        test = data[data["Game_Num"] == game]
+#     for i in range(start, len(games), step):        # 25 is the number of games we're looking at 
+#         game = games[i]
+#         train = data[data["Game_Num"] < game]
+#         test = data[data["Game_Num"] == game]
 
+#         model.fit(train[predictors], train["target"])
+#         preds = model.predict(test[predictors])
+#         preds = pd.Series(preds, index=test.index)
+
+#         combined = pd.concat([test["target"], preds], axis=1)
+#         combined.columns = ["actual", "prediction"]
+#         combined["Game_ID"] = data["Game_ID"][i]
+#         all_predictons.append(combined)
+#         result_df = pd.concat(all_predictons)
+
+#         # data_values = data.loc[result_df[result_df['actual'] == 2].index, 'TEAM']
+        
+#     return result_df
+
+def backTest(data, model, predictors, start=1, step=1):
+    all_predictions = []
+    
+    seasons = sorted(data["season"].unique())
+    
+    for i in range(start, len(seasons), step):
+        season = seasons[i]
+        train = data[data["season"] < season]
+        test = data[data["season"] == season]
+        
         model.fit(train[predictors], train["target"])
+        
         preds = model.predict(test[predictors])
         preds = pd.Series(preds, index=test.index)
-
         combined = pd.concat([test["target"], preds], axis=1)
         combined.columns = ["actual", "prediction"]
-        all_predictons.append(combined)
-    return pd.concat(all_predictons)
+        combined['game_id'] = data.loc[test.index, 'Game_ID'].values
+        combined['team_id'] = data.loc[test.index, 'Team_ID'].values
+        # combined['team'] = data.loc[test.index, 'TEAM'].values
+
+
+        all_predictions.append(combined)
+        result = pd.concat(all_predictions)
+    return result
+
 
 def getPredictions(filepath):
     df = pd.read_csv(filepath)
@@ -86,7 +130,7 @@ def getAccuracyScore(predictions):
 
 def get_rolling(df):
     selected_columns = df.columns[~df.columns.isin(removed_columns)]
-    df_rolling = df[list(selected_columns) + ["WL", "Team_ID", "Game_Num"]]
+    df_rolling = df[list(selected_columns) + ["WL", "Team_ID", "season"]]
     return df_rolling
 
 def find_team_averages(team):
@@ -94,15 +138,20 @@ def find_team_averages(team):
     return rolling
 
 def add_rolling_data(filepath):
-    df = pd.read_csv(filepath)
+    df = pd.read_csv(filepath, dtype={'season': str})
     for ind in range(0,len(df)):
         if df['WL'][ind] == 'W':
             df['WL'][ind] = True
         else:
             df['WL'][ind] = False
-    df_rolling = get_rolling(df).astype(float)
-    df_rolling = df_rolling.groupby(["Team_ID"], group_keys=False)
-    df_rolling = df_rolling.apply(find_team_averages)
+    df_rolling = get_rolling(df)
+    # df_rolling = df_rolling.reset_index(drop=True)
+    # df_rolling = df_rolling.reset_index()
+    # df_rolling['season'] = df_rolling['season'].astype(int, errors='raise')
+    # column_type = df_rolling['season'].dtypes
+    # print(df_rolling.columns)
+    df_rolling = df_rolling.groupby(["Team_ID","season"], group_keys=False).apply(find_team_averages)
+    # df_rolling = df_rolling.apply(find_team_averages)
     rolling_cols = [f"{col}_5" for col in df_rolling.columns]
     df_rolling.columns = rolling_cols
     df = pd.concat([df, df_rolling], axis=1)

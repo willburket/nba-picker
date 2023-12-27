@@ -28,6 +28,8 @@ for ind in range(0,len(stats)):
         # id = stats['Game_ID'][ind]    # last game id's 
         last_games.append(ind)
 
+print(last_games)
+
 for idx in last_games:
     team = stats['TEAM'][idx]
 
@@ -41,6 +43,7 @@ for idx in last_games:
         stats['home_next'][idx] = False
 
 stats.to_csv(next_game_path, index=False)
+# 
 
 
 
