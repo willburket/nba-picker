@@ -6,9 +6,11 @@ import pandas as pd
 
 # activate virtual environment: source nba-predictor/bin/activate
 
-# run download.py to get data or update.py to update data
+# run download.py to get data for the first time 
+
+# run update.py to update data
 # run prep.py to prep data
-# run play.py to add next games
+# run play.py to add next games             # should run in prep now
 # run main.py to get predictions/acc score
 # run aggregate.py to get a full prediction csv
 
@@ -49,7 +51,7 @@ upcoming_games = predictions[predictions['actual'] == 2]
 
 
 # corresponding_games.to_csv('./data/corres_games.csv')
-predictions.to_csv('./data/predictions.csv', index=False)
+# predictions.to_csv('./data/predictions.csv', index=False)
 upcoming_games.to_csv('./data/upcoming_games.csv', index=False)
 
 # check accuracy 

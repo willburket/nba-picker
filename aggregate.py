@@ -2,7 +2,7 @@ import pandas as pd
 
 preds = pd.read_csv('./data/upcoming_games.csv')
 stats = pd.read_csv('./data/next_game_incl.csv')
-columns = ['game_id','team','opponent','prediction']
+columns = ['game_id','team','opponent']
 
 df = pd.DataFrame(columns = columns)
 
@@ -16,11 +16,11 @@ for x in range(len(preds)):
     df.loc[x,'opponent'] = row['team_opp_next'].values[0]
 
     if preds['prediction'][x] == 1:
-        prediction = 'W'
+        winner = row['TEAM'].values[0]
     else:
-        prediction = 'L'
+        winner = row['team_opp_next'].values[0]
 
-    df.loc[x,'prediction'] = prediction
+    df.loc[x,'winner'] = winner
 
 
 df.to_csv('./data/aggregated_preds.csv', index=False)
