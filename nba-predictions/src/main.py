@@ -18,40 +18,32 @@ import pandas as pd
 # set up
 removed_columns = ['INDEX','Team_ID', 'Game_ID', 'GAME_DATE', 'TEAM', 'OPPONENT',
                        'WL', 'W', 'L', 'target', 'MIN', 'Game_Num', 'HOME', 'DATE', 'Unnamed: 0']   
-rolling_cols =['W_PCT_5','FGM_5','FGA_5','FG_PCT_5','FG3M_5','FG3A_5','FG3_PCT_5','FTM_5','FTA_5','FT_PCT_5',
-               'OREB_5','DREB_5','REB_5','AST_5','STL_5','BLK_5','TOV_5','PF_5','PTS_5','E_OFF_RATING_5',
-               'OFF_RATING_5','E_DEF_RATING_5','DEF_RATING_5','E_NET_RATING_5','NET_RATING_5','AST_PCT_5',
-               'AST_TOV_5','AST_RATIO_5','OREB_PCT_5','DREB_PCT_5','REB_PCT_5','E_TM_TOV_PCT_5','TM_TOV_PCT_5',
-               'EFG_PCT_5','TS_PCT_5','USG_PCT_5','E_USG_PCT_5','E_PACE_5','PACE_5','PACE_PER40_5','POSS_5','PIE_5','WL_5']
+
+rolling_cols =['W_PCT_10','FGM_10','FGA_10','FG_PCT_10','FG3M_10','FG3A_10','FG3_PCT_10','FTM_10','FTA_10','FT_PCT_10',
+               'OREB_10','DREB_10','REB_10','AST_10','STL_10','BLK_10','TOV_10','PF_10','PTS_10','E_OFF_RATING_10',
+               'OFF_RATING_10','E_DEF_RATING_10','DEF_RATING_10','E_NET_RATING_10','NET_RATING_10','AST_PCT_10',
+               'AST_TOV_10','AST_RATIO_10','OREB_PCT_10','DREB_PCT_10','REB_PCT_10','E_TM_TOV_PCT_10','TM_TOV_PCT_10',
+               'EFG_PCT_10','TS_PCT_10','USG_PCT_10','E_USG_PCT_10','E_PACE_10','PACE_10','PACE_PER40_10','POSS_10','PIE_10','WL_10']
 
 rr = RidgeClassifier(alpha=1)
 split = TimeSeriesSplit(n_splits=3)
 sfs = SequentialFeatureSelector(rr, n_features_to_select=30, direction='forward', cv = split)
 
-# df = pd.read_csv('./data/opp_data_incl.csv')
 df = pd.read_csv('./data/next_game_incl.csv')
 
-
-# include opponents 5 game rolling avg's 
+# include opponents 10 game rolling avg's 
 full = df.merge(df[rolling_cols + ["team_opp_next", "date_next", "TEAM"]], left_on=["TEAM", "date_next"], right_on=["team_opp_next", "date_next"])
 removed_columns = list(full.columns[full.dtypes == 'object']) + removed_columns
 selected_columns = full.columns[~full.columns.isin(removed_columns)]
 print(selected_columns)
 sfs.fit(full[selected_columns],full["target"])
 
-# add in next game data on rows with null (most recent games)
-
-
 # predictions 
 predictors = list(selected_columns[sfs.get_support()])
 predictions = backTest(full,rr,predictors)
 
+# get future predictions
 upcoming_games = predictions[predictions['actual'] == 2]
-
-
-
-# corresponding_games.to_csv('./data/corres_games.csv')
-# predictions.to_csv('./data/predictions.csv', index=False)
 upcoming_games.to_csv('./data/upcoming_games.csv', index=False)
 
 # check accuracy 

@@ -43,8 +43,6 @@ def cleanForML(file):
 
 def checkForNull(file):
     df = pd.read_csv(file)        # data after advanced download
-    # count = df["WL"].value_counts()
-    # count = df["target"].value_counts()
     nulls = pd.isnull(df)
     count = nulls.sum()
     print(count)
@@ -56,39 +54,14 @@ def getPredictors(file):
     rr = RidgeClassifier(alpha=1)
     split = TimeSeriesSplit(n_splits=3)
     sfs = SequentialFeatureSelector(rr, n_features_to_select=30, direction='forward', cv = split)
-    # removed_columns = ['INDEX','Team_ID', 'Game_ID', 'GAME_DATE', 'TEAM', 'OPPONENT',
-    #                    'WL', 'W', 'L', 'target', 'MIN', 'Game_Num']            
+         
     selected_columns = df.columns[~df.columns.isin(removed_columns)]
     scaler = MinMaxScaler()
     df[selected_columns] = scaler.fit_transform(df[selected_columns])
-    # file_path = './data/prepped_data.csv'
-    # df.to_csv(file_path, index=False)
+
     sfs.fit(df[selected_columns], df["target"])
     predictors = list(selected_columns[sfs.get_support()])
     return predictors
-
-# def backTest(data, model, predictors, start=2, step=1):
-#     all_predictons = []
-#     games = sorted(data["Game_Num"].unique())
-
-#     for i in range(start, len(games), step):        # 25 is the number of games we're looking at 
-#         game = games[i]
-#         train = data[data["Game_Num"] < game]
-#         test = data[data["Game_Num"] == game]
-
-#         model.fit(train[predictors], train["target"])
-#         preds = model.predict(test[predictors])
-#         preds = pd.Series(preds, index=test.index)
-
-#         combined = pd.concat([test["target"], preds], axis=1)
-#         combined.columns = ["actual", "prediction"]
-#         combined["Game_ID"] = data["Game_ID"][i]
-#         all_predictons.append(combined)
-#         result_df = pd.concat(all_predictons)
-
-#         # data_values = data.loc[result_df[result_df['actual'] == 2].index, 'TEAM']
-        
-#     return result_df
 
 def backTest(data, model, predictors, start=1, step=1):
     all_predictions = []
@@ -134,7 +107,7 @@ def get_rolling(df):
     return df_rolling
 
 def find_team_averages(team):
-    rolling = team.rolling(5).mean()
+    rolling = team.rolling(10).mean()
     return rolling
 
 def add_rolling_data(filepath):
@@ -145,14 +118,10 @@ def add_rolling_data(filepath):
         else:
             df['WL'][ind] = False
     df_rolling = get_rolling(df)
-    # df_rolling = df_rolling.reset_index(drop=True)
-    # df_rolling = df_rolling.reset_index()
-    # df_rolling['season'] = df_rolling['season'].astype(int, errors='raise')
-    # column_type = df_rolling['season'].dtypes
-    # print(df_rolling.columns)
+ 
     df_rolling = df_rolling.groupby(["Team_ID","season"], group_keys=False).apply(find_team_averages)
-    # df_rolling = df_rolling.apply(find_team_averages)
-    rolling_cols = [f"{col}_5" for col in df_rolling.columns]
+
+    rolling_cols = [f"{col}_10" for col in df_rolling.columns]
     df_rolling.columns = rolling_cols
     df = pd.concat([df, df_rolling], axis=1)
     df = df.dropna()

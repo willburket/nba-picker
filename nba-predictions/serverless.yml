@@ -1,0 +1,18 @@
+org: willburket
+app: nba-predictions
+service: nba-predictions
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+
+functions:
+  hello:
+    handler: src.handler.hello
+
+package:
+  include:
+    - src/**
+    - requirements.txt

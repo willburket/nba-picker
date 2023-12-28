@@ -54,6 +54,8 @@ def saveToCsv(data):
     file_path = './data/game_data2.csv'
     data.to_csv(file_path, index=False)
 
+def test():
+    return 'test passed'
 
 
 
