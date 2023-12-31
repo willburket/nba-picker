@@ -6,13 +6,25 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: python3.9
+  runtime: python3.11
+
+plugins:
+  - serverless-python-requirements
 
 functions:
   hello:
     handler: src.handler.hello
 
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+    zip: true 
+
 package:
-  include:
-    - src/**
-    - requirements.txt
+  # include:
+  #   - src/**
+  #   - requirements.txt
+
+  exclude:
+    - src/data/**
+

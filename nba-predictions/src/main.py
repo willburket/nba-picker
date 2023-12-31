@@ -2,7 +2,9 @@ from helpers.model.logistic_regression import *
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.linear_model import RidgeClassifier
+from helpers.model.pred_prep import *
 import pandas as pd
+
 
 # activate virtual environment: source nba-predictor/bin/activate
 
@@ -10,9 +12,8 @@ import pandas as pd
 
 # run update.py to update data
 # run prep.py to prep data
-# run play.py to add next games             # should run in prep now
 # run main.py to get predictions/acc score
-# run aggregate.py to get a full prediction csv
+# run aggregate.py to get a full prediction csv     # should run in main, test tomorrow
 
 
 # set up
@@ -49,3 +50,6 @@ upcoming_games.to_csv('./data/upcoming_games.csv', index=False)
 # check accuracy 
 acc = accuracy_score(predictions['actual'], predictions['prediction'])
 print(acc)
+
+# aggregate prediction data 
+aggregate()     # test tomorrow

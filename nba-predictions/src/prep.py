@@ -23,4 +23,4 @@ df = pd.read_csv(rolling_file)
 add_opp_info(df)    # saves to opp_data_incl.csv
 
 # 6 add in upcoming games (see play.py)
-addOpponentInfo()                   # test when new games are out
+addOpponentInfo()                   
